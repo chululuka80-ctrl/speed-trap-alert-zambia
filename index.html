@@ -4,81 +4,91 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101b35">
-<meta name="description" content="Speed Trap Alert Zambia - GPS speed and community road alerts.">
+<meta name="description" content="Speed Trap Alert Zambia - GPS speed reminders and community road reports.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <title>Speed Trap Alert Zambia</title>
 <style>
 :root{--navy:#101b35;--blue:#246bfd;--gold:#ffc247;--bg:#f3f6fb;--ink:#17233d;--muted:#66738b;--green:#159765;--red:#d64545}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
-header{background:linear-gradient(135deg,#101b35,#1c3970);color:white;padding:22px 18px 26px;border-radius:0 0 24px 24px}
+header{background:linear-gradient(135deg,#101b35,#1c3970);color:white;padding:22px 18px 25px;border-radius:0 0 24px 24px}
 .brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:14px;background:var(--gold);display:grid;place-items:center;color:#101b35;font-size:25px;font-weight:900}
 h1{font-size:20px;margin:0}header p{margin:4px 0 0;color:#dbe5ff;font-size:13px}
-main{max-width:720px;margin:auto;padding:16px}
+main{max-width:760px;margin:auto;padding:16px}.tabs{display:flex;gap:8px;margin:0 0 14px}.tabs button{flex:1;background:#e7ecf6;color:#33415e}.tabs button.active{background:var(--navy);color:white}
 .card{background:white;border-radius:18px;padding:17px;margin:0 0 14px;box-shadow:0 5px 20px #15294b0d}
-.speedrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.speed{font-size:56px;font-weight:800;line-height:1;color:var(--navy);font-variant-numeric:tabular-nums}.unit{font-size:14px;color:var(--muted);font-weight:600}
-.status{font-size:12px;color:var(--muted);margin-top:8px}
-button,.button{border:0;border-radius:12px;padding:12px 15px;font-weight:700;font-size:14px;background:var(--blue);color:white;cursor:pointer}
-button.secondary{background:#edf2ff;color:#214da8}button.gold{background:var(--gold);color:#302000}
-button:disabled{opacity:.5}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.speedrow{display:flex;align-items:center;justify-content:space-between;gap:10px}.speed{font-size:56px;font-weight:800;line-height:1;color:var(--navy);font-variant-numeric:tabular-nums}.unit{font-size:14px;color:var(--muted);font-weight:600}.status{font-size:12px;color:var(--muted);margin-top:8px}
+button,.button{border:0;border-radius:12px;padding:12px 15px;font-weight:700;font-size:14px;background:var(--blue);color:white;cursor:pointer}button.secondary{background:#edf2ff;color:#214da8}button.gold{background:var(--gold);color:#302000}button:disabled{opacity:.5}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:#f5f7fc;border-radius:13px;padding:12px}.metric strong{display:block;font-size:18px}.metric span{font-size:12px;color:var(--muted)}
 h2{font-size:16px;margin:0 0 12px}.field{display:grid;gap:6px;margin:10px 0}.field label{font-size:12px;font-weight:700;color:var(--muted)}input,select{width:100%;padding:12px;border:1px solid #dbe2ef;border-radius:10px;font:inherit;background:white;color:var(--ink)}
 .notice{font-size:12px;color:var(--muted);line-height:1.5}.alert{padding:12px;border-radius:12px;background:#fff5dc;color:#765000;font-weight:700;font-size:13px;display:none}.alert.show{display:block}
 .list{display:grid;gap:8px}.item{padding:11px;background:#f6f8fc;border-radius:12px;display:flex;justify-content:space-between;gap:10px;font-size:13px}.item small{display:block;color:var(--muted);margin-top:3px}
 footer{text-align:center;color:var(--muted);font-size:11px;padding:8px 0 24px}
-.tabs{display:flex;gap:8px;margin:0 0 14px}.tabs button{flex:1;background:#e7ecf6;color:#33415e}.tabs button.active{background:var(--navy);color:white}
+#map{height:330px;border-radius:14px;overflow:hidden;background:#e8edf5}.pill{display:inline-block;padding:5px 9px;border-radius:20px;background:#eaf7f0;color:#126b49;font-size:11px;font-weight:700}.warning{background:#fff5dc;color:#765000}.sync{font-size:12px;margin-top:8px;color:var(--muted)}
+@media(max-width:420px){.speed{font-size:48px}.card{padding:14px}}
 </style>
 </head>
 <body>
 <header><div class="brand"><div class="logo">Z</div><div><h1>Speed Trap Alert Zambia</h1><p>Drive aware. Arrive safe.</p></div></div></header>
 <main>
-<div class="tabs"><button class="active" data-tab="drive">Drive</button><button data-tab="reports">Road reports</button></div>
+<div class="tabs"><button class="active" data-tab="drive">Drive</button><button data-tab="reports">Road reports</button><button data-tab="mapTab">Live map</button></div>
 <section id="drive">
 <div class="card">
 <div class="speedrow"><div><div class="unit">YOUR CURRENT SPEED</div><div class="speed"><span id="speed">--</span><span class="unit"> km/h</span></div><div class="status" id="gpsStatus">GPS not started</div></div><div style="font-size:38px">🚘</div></div>
-<div class="actions"><button id="startGps">Start GPS</button><button class="secondary" id="stopGps" disabled>Stop</button></div>
-<div class="alert" id="nearAlert" style="margin-top:12px"></div>
+<div class="actions"><button id="startGps">Start GPS</button><button class="secondary" id="stopGps" disabled>Stop</button></div><div class="alert" id="nearAlert" style="margin-top:12px"></div>
 </div>
 <div class="card"><h2>Journey details</h2><div class="grid">
-<div class="metric"><strong id="limit">Not set</strong><span>Speed limit</span></div>
-<div class="metric"><strong id="distance">--</strong><span>Distance travelled</span></div>
-<div class="metric"><strong id="latitude">--</strong><span>Latitude</span></div>
-<div class="metric"><strong id="longitude">--</strong><span>Longitude</span></div>
-</div>
-<div class="field"><label for="speedLimit">Set your speed reminder (km/h)</label><input id="speedLimit" type="number" min="10" max="160" value="80"></div>
-<p class="notice">GPS speed is an estimate and may be delayed or inaccurate. Always follow posted road signs and drive within the legal speed limit.</p></div>
-<div class="card"><h2>Nearby community alerts</h2><div id="nearbyList" class="list"><div class="notice">Start GPS to check saved reports near you.</div></div></div>
+<div class="metric"><strong id="limit">80 km/h</strong><span>Speed reminder</span></div><div class="metric"><strong id="distance">0.00 km</strong><span>Distance travelled</span></div>
+<div class="metric"><strong id="latitude">--</strong><span>Latitude</span></div><div class="metric"><strong id="longitude">--</strong><span>Longitude</span></div>
+</div><div class="field"><label for="speedLimit">Set your speed reminder (km/h)</label><input id="speedLimit" type="number" min="10" max="160" value="80"></div>
+<p class="notice">GPS speed is an estimate and may be delayed or inaccurate. Always obey posted speed limits and road signs.</p></div>
+<div class="card"><h2>Nearby community reports</h2><div id="nearbyList" class="list"><div class="notice">Start GPS to check reports near you.</div></div></div>
 </section>
 <section id="reports" hidden>
-<div class="card"><h2>Report a road location</h2>
+<div class="card"><h2>Share a road report</h2>
 <div class="field"><label for="reportType">Report type</label><select id="reportType"><option value="Speed camera">Speed camera / speed check</option><option value="Police checkpoint">Police checkpoint</option><option value="Road hazard">Road hazard</option><option value="Accident">Accident</option></select></div>
 <div class="field"><label for="reportNote">Extra details (optional)</label><input id="reportNote" maxlength="100" placeholder="e.g. pothole near junction"></div>
-<p class="notice">Reports are saved on this phone only in this prototype. They are not verified or shared with other drivers.</p>
-<div class="actions"><button id="useCurrent" class="secondary">Use my current GPS location</button><button id="saveReport" disabled>Save report</button></div>
+<div class="actions"><button id="useCurrent" class="secondary">Use my current GPS location</button><button id="saveReport" disabled>Share report</button></div>
 <div class="status" id="reportCoords">No location selected</div>
+<p class="notice">Reports are community-submitted and unverified. Your selected location and report details will be shared publicly if online sharing is configured. Do not include names, phone numbers or private information.</p>
 </div>
-<div class="card"><h2>Saved reports on this phone</h2><div id="allReports" class="list"></div><div class="actions"><button class="secondary" id="clearReports">Clear my reports</button></div></div>
+<div class="card"><h2>Recent reports</h2><div class="pill" id="modePill">Phone-only mode</div><div class="sync" id="syncStatus">Reports saved on this phone until online database is configured.</div><div id="allReports" class="list" style="margin-top:12px"></div><div class="actions"><button class="secondary" id="refreshReports">Refresh reports</button><button class="secondary" id="clearReports">Clear my phone's reports</button></div></div>
 </section>
-<footer>Prototype edition · Community reports are not official or guaranteed. Never use your phone while driving.</footer>
+<section id="mapTab" hidden><div class="card"><h2>Community road map</h2><div id="map"></div><p class="notice" style="margin-top:10px">Map pins show recent community-submitted reports. They may be inaccurate or unverified. Map tiles require an internet connection.</p><div class="actions"><button class="secondary" id="centerMap">Center on my location</button><button id="refreshMap">Refresh map</button></div></div></section>
+<footer>Community information is not official or guaranteed. Never handle your phone while driving. Use the app only when safely parked or with a passenger.</footer>
 </main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
+/* Add your Supabase project URL and anon/public key after creating the database.
+   Never put a service_role key or account password in this file. */
+const SUPABASE_URL = "https://gxinmziwcahnuoneelsm.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_jDqRaJ3OJ_IR4DFxeF8YWA_9x3a_RVt";
+const SHARED_ENABLED = SUPABASE_URL.startsWith("https://") && !SUPABASE_URL.includes("PASTE_") && !SUPABASE_ANON_KEY.includes("PASTE_");
 const $=id=>document.getElementById(id);
-let watchId=null,lastPosition=null,reportPosition=null,meters=0,previous=null,alerted=new Set();
+let watchId=null,lastPosition=null,reportPosition=null,meters=0,previous=null,alerted=new Set(),map=null,mapMarkers=[];
 let reports=JSON.parse(localStorage.getItem('sta_reports')||'[]');
-const save=()=>localStorage.setItem('sta_reports',JSON.stringify(reports));
+const saveLocal=()=>localStorage.setItem('sta_reports',JSON.stringify(reports));
 function distance(a,b){const R=6371000,rad=x=>x*Math.PI/180,dLat=rad(b.lat-a.lat),dLon=rad(b.lon-a.lon),x=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
-function renderReports(){ $('allReports').innerHTML=reports.length?reports.map((r,i)=>`<div class="item"><div><b>${escapeHtml(r.type)}</b><small>${r.lat.toFixed(5)}, ${r.lon.toFixed(5)} · ${escapeHtml(r.note||'No extra details')}</small></div><button class="secondary" data-delete="${i}" style="padding:7px 10px">Delete</button></div>`).join(''):'<div class="notice">No saved reports yet.</div>';document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{reports.splice(+b.dataset.delete,1);save();renderReports();checkNearby()})}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function checkNearby(){if(!lastPosition)return;let here={lat:lastPosition.coords.latitude,lon:lastPosition.coords.longitude};let close=reports.map((r,i)=>({...r,index:i,meters:distance(here,r)})).filter(r=>r.meters<=1000).sort((a,b)=>a.meters-b.meters);$('nearbyList').innerHTML=close.length?close.map(r=>`<div class="item"><div><b>${escapeHtml(r.type)}</b><small>${Math.round(r.meters)} m away · ${escapeHtml(r.note||'Community report')}</small></div></div>`).join(''):'<div class="notice">No saved community reports within 1 km.</div>';let nearest=close.find(r=>r.meters<=300);if(nearest){$('nearAlert').textContent=`⚠️ ${nearest.type} reported about ${Math.round(nearest.meters)} metres away. Stay alert.`;$('nearAlert').classList.add('show');if(!alerted.has(nearest.index)){if('vibrate'in navigator)navigator.vibrate([180,100,180]);alerted.add(nearest.index)}}else{$('nearAlert').classList.remove('show');alerted.clear()}}
-$('startGps').onclick=()=>{if(!navigator.geolocation){$('gpsStatus').textContent='GPS is not supported by this browser';return}watchId=navigator.geolocation.watchPosition(pos=>{lastPosition=pos;let c=pos.coords;let speed=c.speed==null?null:c.speed*3.6;$('speed').textContent=speed==null?'--':Math.round(speed);$('gpsStatus').textContent='GPS active · accuracy ±'+Math.round(c.accuracy)+' m';$('latitude').textContent=c.latitude.toFixed(5);$('longitude').textContent=c.longitude.toFixed(5);let lim=+$('speedLimit').value;$('limit').textContent=lim+' km/h';if(speed!==null&&speed>lim){$('nearAlert').textContent='⚠️ You are above your selected speed reminder. Slow down safely.';$('nearAlert').classList.add('show')}if(previous){meters+=distance({lat:previous.latitude,lon:previous.longitude},{lat:c.latitude,lon:c.longitude});$('distance').textContent=(meters/1000).toFixed(2)+' km'}previous={latitude:c.latitude,longitude:c.longitude};checkNearby()},err=>{$('gpsStatus').textContent=err.message+' · Check location permission and HTTPS'},{enableHighAccuracy:true,maximumAge:1000,timeout:15000});$('startGps').disabled=true;$('stopGps').disabled=false};
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function niceTime(v){let d=new Date(v);return isNaN(d)?'Recently':d.toLocaleString()}
+function reportCoords(r){return {lat:Number(r.lat),lon:Number(r.lon)}}
+function setMode(){ $('modePill').textContent=SHARED_ENABLED?'Shared online reports':'Phone-only mode';$('syncStatus').textContent=SHARED_ENABLED?'Connected to shared reports. Community reports expire after 6 hours.':'Reports currently stay on this phone. Add Supabase settings to enable sharing.'}
+async function api(path,opts={}){const res=await fetch(SUPABASE_URL+'/rest/v1/'+path,{...opts,headers:{apikey:SUPABASE_ANON_KEY,Authorization:'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json',Prefer:'return=representation',...(opts.headers||{})}});if(!res.ok)throw new Error('Database request failed ('+res.status+'). Check database setup and permissions.');return res.status===204?[]:res.json()}
+async function loadReports(){if(SHARED_ENABLED){try{let rows=await api('reports?select=id,type,note,lat,lon,created_at,expires_at&expires_at=gt.'+encodeURIComponent(new Date().toISOString())+'&order=created_at.desc&limit=100');reports=rows.map(r=>({id:r.id,type:r.type,note:r.note,lat:Number(r.lat),lon:Number(r.lon),created:r.created_at,expires:r.expires_at,shared:true}));saveLocal();$('syncStatus').textContent='Loaded '+reports.length+' shared recent reports.'}catch(e){$('syncStatus').textContent=e.message+' Showing reports saved on this phone.';reports=JSON.parse(localStorage.getItem('sta_reports')||'[]')}}renderReports();renderMapMarkers();checkNearby()}
+function renderReports(){ $('allReports').innerHTML=reports.length?reports.map((r,i)=>`<div class="item"><div><b>${escapeHtml(r.type)}</b><small>${Number(r.lat).toFixed(5)}, ${Number(r.lon).toFixed(5)} · ${escapeHtml(r.note||'No extra details')}<br>${niceTime(r.created)} ${r.shared?'· Shared':''}</small></div>${!r.shared?`<button class="secondary" data-delete="${i}" style="padding:7px 10px">Delete</button>`:''}</div>`).join(''):'<div class="notice">No recent reports found.</div>';document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{reports.splice(+b.dataset.delete,1);saveLocal();renderReports();renderMapMarkers();checkNearby()})}
+function checkNearby(){if(!lastPosition)return;let here={lat:lastPosition.coords.latitude,lon:lastPosition.coords.longitude};let close=reports.map((r,i)=>({...r,index:i,meters:distance(here,reportCoords(r))})).filter(r=>r.meters<=1500).sort((a,b)=>a.meters-b.meters);$('nearbyList').innerHTML=close.length?close.map(r=>`<div class="item"><div><b>${escapeHtml(r.type)}</b><small>${Math.round(r.meters)} m away · ${escapeHtml(r.note||'Community report')}</small></div></div>`).join(''):'<div class="notice">No recent reports within 1.5 km.</div>';let nearest=close.find(r=>r.meters<=300);if(nearest){$('nearAlert').textContent=`⚠️ ${nearest.type} reported about ${Math.round(nearest.meters)} metres away. Stay alert.`;$('nearAlert').classList.add('show');if(!alerted.has(nearest.index)){if('vibrate'in navigator)navigator.vibrate([180,100,180]);alerted.add(nearest.index)}}else{$('nearAlert').classList.remove('show');alerted.clear()}}
+function initMap(){if(map||!window.L)return;map=L.map('map').setView([-13.6333,32.65],6);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);renderMapMarkers()}
+function renderMapMarkers(){if(!map)return;mapMarkers.forEach(m=>map.removeLayer(m));mapMarkers=[];reports.forEach(r=>{let marker=L.marker([Number(r.lat),Number(r.lon)]).addTo(map).bindPopup('<b>'+escapeHtml(r.type)+'</b><br>'+escapeHtml(r.note||'Community report')+'<br><small>'+niceTime(r.created)+'</small>');mapMarkers.push(marker)});if(lastPosition){let m=L.circleMarker([lastPosition.coords.latitude,lastPosition.coords.longitude],{radius:8,color:'#246bfd'}).addTo(map).bindPopup('Your current location');mapMarkers.push(m)}}
+$('startGps').onclick=()=>{if(!navigator.geolocation){$('gpsStatus').textContent='GPS is not supported by this browser';return}watchId=navigator.geolocation.watchPosition(pos=>{lastPosition=pos;let c=pos.coords,speed=c.speed==null?null:c.speed*3.6;$('speed').textContent=speed==null?'--':Math.round(speed);$('gpsStatus').textContent='GPS active · accuracy ±'+Math.round(c.accuracy)+' m';$('latitude').textContent=c.latitude.toFixed(5);$('longitude').textContent=c.longitude.toFixed(5);let lim=+$('speedLimit').value;$('limit').textContent=lim+' km/h';if(speed!==null&&speed>lim){$('nearAlert').textContent='⚠️ Above your selected speed reminder. Slow down safely.';$('nearAlert').classList.add('show')}if(previous){meters+=distance({lat:previous.latitude,lon:previous.longitude},{lat:c.latitude,lon:c.longitude});$('distance').textContent=(meters/1000).toFixed(2)+' km'}previous={latitude:c.latitude,longitude:c.longitude};checkNearby();renderMapMarkers()},err=>{$('gpsStatus').textContent=err.message+' · Check location permission and HTTPS'},{enableHighAccuracy:true,maximumAge:1000,timeout:15000});$('startGps').disabled=true;$('stopGps').disabled=false};
 $('stopGps').onclick=()=>{if(watchId!==null)navigator.geolocation.clearWatch(watchId);watchId=null;$('gpsStatus').textContent='GPS stopped';$('startGps').disabled=false;$('stopGps').disabled=true};
-$('useCurrent').onclick=()=>{if(!lastPosition){$('reportCoords').textContent='Start GPS on the Drive tab first.';return}reportPosition={lat:lastPosition.coords.latitude,lon:lastPosition.coords.longitude};$('reportCoords').textContent=`Selected: ${reportPosition.lat.toFixed(5)}, ${reportPosition.lon.toFixed(5)}`;$('saveReport').disabled=false};
-$('saveReport').onclick=()=>{if(!reportPosition)return;reports.push({type:$('reportType').value,note:$('reportNote').value,lat:reportPosition.lat,lon:reportPosition.lon,created:Date.now()});save();renderReports();$('reportNote').value='';$('reportCoords').textContent='Report saved on this phone.';$('saveReport').disabled=true;checkNearby()};
-$('clearReports').onclick=()=>{if(confirm('Delete all reports saved on this phone?')){reports=[];save();renderReports();checkNearby()}};
-document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));$('drive').hidden=b.dataset.tab!=='drive';$('reports').hidden=b.dataset.tab!=='reports'});
+$('useCurrent').onclick=()=>{if(!lastPosition){$('reportCoords').textContent='Go to Drive, start GPS, then return here.';return}reportPosition={lat:lastPosition.coords.latitude,lon:lastPosition.coords.longitude};$('reportCoords').textContent=`Selected: ${reportPosition.lat.toFixed(5)}, ${reportPosition.lon.toFixed(5)}`;$('saveReport').disabled=false};
+$('saveReport').onclick=async()=>{if(!reportPosition)return;let row={type:$('reportType').value,note:$('reportNote').value.trim(),lat:reportPosition.lat,lon:reportPosition.lon,created:new Date().toISOString(),expires_at:new Date(Date.now()+6*60*60*1000).toISOString()};$('saveReport').disabled=true;if(SHARED_ENABLED){try{await api('reports',{method:'POST',body:JSON.stringify({type:row.type,note:row.note,lat:row.lat,lon:row.lon,expires_at:row.expires_at})});$('reportCoords').textContent='Report shared with other app users.';await loadReports()}catch(e){reports.unshift({...row,shared:false});saveLocal();$('reportCoords').textContent='Online sharing failed. Saved on this phone only. '+e.message;renderReports()}}else{reports.unshift({...row,shared:false});saveLocal();renderReports();renderMapMarkers();checkNearby();$('reportCoords').textContent='Saved on this phone. Configure Supabase to share with other drivers.'}$('reportNote').value='';reportPosition=null;$('saveReport').disabled=true};
+$('clearReports').onclick=()=>{if(confirm('Delete reports saved only on this phone? This does not delete shared reports.')){reports=reports.filter(r=>r.shared);saveLocal();renderReports();renderMapMarkers();checkNearby()}};
+$('refreshReports').onclick=loadReports;$('refreshMap').onclick=loadReports;
+$('centerMap').onclick=()=>{if(!lastPosition){alert('Start GPS on the Drive tab first.');return}initMap();map.setView([lastPosition.coords.latitude,lastPosition.coords.longitude],14)};
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));['drive','reports','mapTab'].forEach(id=>$(id).hidden=id!==b.dataset.tab);if(b.dataset.tab==='mapTab'){initMap();setTimeout(()=>map&&map.invalidateSize(),150)}});
 $('speedLimit').onchange=()=>{$('limit').textContent=$('speedLimit').value+' km/h'};
-renderReports();
+setMode();renderReports();loadReports();
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
 </body></html>
