@@ -1,0 +1,10 @@
+{
+  "name": "Speed Trap Alert Zambia",
+  "short_name": "Speed Alert ZM",
+  "description": "GPS speed reminders and community road alerts for Zambia.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f6fb",
+  "theme_color": "#101b35",
+  "icons": [{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
